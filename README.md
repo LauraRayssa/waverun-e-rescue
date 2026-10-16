@@ -1,5 +1,9 @@
 # WaveRun & Rescue
 
+<p align="center">
+  <img src="./assets/backgrounds/capa-cena.png" alt="Símbolo e Logotipo do 4U" width="1000">
+</p>
+
 Jogo de resgate marítimo feito com **HTML5, CSS3, JavaScript (ES6 modules) e Canvas**, desenvolvido para a avaliação NI1 da disciplina de Programação Orientada a Objetos.
 
 ## Integrantes
