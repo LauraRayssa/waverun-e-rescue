@@ -1,0 +1,957 @@
+/*
+ * style.css
+ * PAPEL NO PROJETO: é todo o visual do jogo, ou seja, tudo o que NÃO é
+ * desenhado no canvas: HUD, pop-ups, menu, "Como jogar", créditos, pausa,
+ * Game Over e vitória. O JavaScript só liga e desliga as classes
+ * (hidden, active, reached, evoluindo); a aparência fica aqui.
+ *
+ * PALETA:
+ *   azul-marinho #0a2e42 | ciano #42c6ea | dourado #f5c462 | areia #e8d59c
+ *
+ * UNIDADE "cqw": 1% da largura da moldura do jogo (#game-frame). Como todos
+ * os tamanhos usam cqw, o HUD, os botões e as telas crescem e encolhem junto
+ * com a janela, sem deformar.
+ *
+ * ORGANIZAÇÃO: variáveis -> moldura e canvas -> HUD -> pop-up -> telas e
+ * botões -> cartões -> pausa -> Game Over e vitória -> créditos -> Como jogar
+ * -> animação de evolução.
+ */
+
+/* Variáveis de cor e de fonte: mudar aqui muda o jogo inteiro. */
+:root {
+    --navy: #0a2e42;
+    --navy-card: #0d3a52;
+    --cyan: #42c6ea;
+    --gold: #f5c462;
+    --sand: #e8d59c;
+    --white: #ffffff;
+    --orange: #f5a623;
+    --blue: #4a90e2;
+    --font-title: 'Exo 2', 'Segoe UI', sans-serif;
+    --font-body: 'Poppins', 'Segoe UI', sans-serif;
+}
+
+/* Faz a largura e a altura contarem a borda e o espaçamento, o que facilita as contas de tamanho. */
+* {
+    box-sizing: border-box;
+}
+
+/* Página inteira: fundo escuro e a moldura do jogo centralizada na janela. */
+body {
+    margin: 0;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #05131c;
+    overflow: hidden;
+    font-family: var(--font-body);
+}
+
+/* Moldura 16:9: ocupa a maior área possível sem cortar nem esticar. */
+#game-frame {
+    position: relative;
+    width: min(100vw, calc(100vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    container-type: inline-size;
+    overflow: hidden;
+    background: var(--navy);
+    user-select: none;
+}
+
+/* O canvas ocupa toda a moldura; o tamanho real (1280x720) é escalado pelo navegador. */
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Classe usada pelo JavaScript para esconder um elemento (HUD, pop-up...). */
+.hidden {
+    display: none !important;
+}
+
+/*  HUD  */
+.hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5cqw;
+    display: flex;
+    align-items: center;
+    gap: 2.4cqw;
+    padding: 0 2cqw;
+    background: var(--navy);     /* faixa sólida, encosta no mar sem vão */
+    color: var(--white);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1.4cqw;
+}
+
+/* Cada grupo do HUD (ícone + valor). */
+.hud-item {
+    display: flex;
+    align-items: center;
+    gap: 1cqw;
+}
+
+/* Ícones do HUD com altura fixa e largura proporcional. */
+.hud-item img,
+.hud-item svg {
+    height: 2.4cqw;
+    width: auto;
+}
+
+/* A ocupação vai para o canto direito (margin-left: auto empurra o item). */
+.hud-occupancy {
+    margin-left: auto;
+    gap: 0.8cqw;
+}
+
+/* A palavra "Ocupação" é um pouco mais clara que o número. */
+.hud-label {
+    opacity: 0.75;
+    font-weight: 500;
+}
+
+/* Botão de pausa: círculo dourado com dois traços dentro. */
+.hud-pause {
+    width: 3cqw;
+    height: 3cqw;
+    border-radius: 50%;
+    border: 0.12cqw solid var(--gold);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8cqw;
+    cursor: pointer;
+}
+
+/* Cada traço do símbolo de pausa. */
+.hud-pause span {
+    display: block;
+    width: 0.25cqw;
+    height: 1.2cqw;
+    background: var(--gold);
+}
+
+/* Pop-up */
+.popup {
+    position: absolute;
+    top: 10.5%;             /* logo abaixo do HUD, sem cobrir o trajeto */
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: 26cqw;
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Etiqueta ciano no topo do pop-up, que invade um pouco o cartão. */
+.popup-tab {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+    padding: 0.8cqw 2.6cqw;
+    margin-bottom: -1.6cqw;
+    background: var(--cyan);
+    color: var(--navy);
+    border-radius: 2cqw;
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 1.2cqw;
+    box-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.3);
+}
+
+/* Cartão azul-marinho do pop-up, com a sombra ciano embaixo. */
+.popup-card {
+    position: relative;
+    padding: 1.4cqw 1.6cqw 1.4cqw;
+    background: var(--navy);
+    border-radius: 2.4cqw;
+    box-shadow: 0 1.2cqw 0 var(--cyan);
+    color: var(--white);
+}
+
+/* Título do pop-up, em dourado. */
+.popup-card h2 {
+    margin: 0;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 2.2cqw;
+    color: var(--gold);
+    text-shadow: 0 0.3cqw 0.6cqw rgba(0, 0, 0, 0.4);
+}
+
+/* Texto do pop-up. */
+.popup-card p {
+    margin: 0.4cqw 0 0;
+    font-size: 1.2cqw;
+}
+
+/* Ícone do pop-up (mar calmo, tempestade, veículo...). */
+.popup-icon {
+    display: block;
+    height: 3.4cqw;
+    width: auto;
+    margin: 0 auto 0.5cqw;
+}
+
+/*  Telas (menu, cartões, pausa, derrota, vitória)  */
+/* Base de toda tela: cobre a moldura inteira, fica escondida e aparece com a classe .active. */
+.screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* O ScreenManager adiciona "active" para mostrar uma tela. */
+.screen.active {
+    display: flex;
+}
+
+/* Fundo da capa (cena da V1, proporção 16:9). A arte já traz o título e os botões. */
+.screen-cover {
+    background: url('../assets/backgrounds/capa-cena.png') center / cover no-repeat;
+}
+
+/* Mesma cena, escurecida, para as telas de texto (Como Jogar e Créditos).
+   Começa no topo e rola se o conteúdo for maior que a moldura. */
+.screen-scene {
+    background:
+        linear-gradient(rgba(5, 19, 28, 0.55), rgba(5, 19, 28, 0.55)),
+        url('../assets/backgrounds/capa-cena.png') center / cover no-repeat;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 5cqw 0 3cqw;
+}
+
+/*
+ * Áreas clicáveis sobre a arte da capa. Posições em cqw (1 cqw = 1% da largura
+ */
+.hit-area {
+    position: absolute;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* Posição de cada botão invisível do menu (veja o cálculo no comentário acima). */
+.hit-play {
+    left: 39.8cqw;
+    top: 20.2cqw;
+    width: 20.3cqw;
+    height: 5.6cqw;
+}
+
+.hit-howto {
+    left: 40.6cqw;
+    top: 26.9cqw;
+    width: 18.8cqw;
+    height: 4.7cqw;
+}
+
+.hit-credits {
+    left: 43cqw;
+    top: 32.7cqw;
+    width: 14.1cqw;
+    height: 4.2cqw;
+}
+
+/* Tela que aparece por cima da partida (pausa e Game Over), com o fundo escurecido. */
+.screen-overlay {
+    background: rgba(5, 19, 28, 0.62);
+}
+
+/* Botão arredondado padrão do jogo. */
+.btn {
+    min-width: 22cqw;
+    padding: 1.2cqw 3.2cqw;
+    border: none;
+    border-radius: 999px;
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 2.2cqw;
+    cursor: pointer;
+    box-shadow: 0 0.5cqw 0 rgba(0, 0, 0, 0.25);
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+/* Fica um pouco mais claro ao passar o mouse. */
+.btn:hover {
+    filter: brightness(1.08);
+}
+
+/* Afunda levemente ao clicar. */
+.btn:active {
+    transform: translateY(0.3cqw);
+}
+
+/* Botão principal (laranja): Jogar novamente. */
+.btn-primary {
+    background: var(--orange);
+    color: #6b3e0c;
+}
+
+/* Botão secundário (azul): Menu e Voltar. */
+.btn-secondary {
+    background: var(--blue);
+    color: var(--white);
+}
+
+/* Cartão azul-marinho com a sombra ciano embaixo: usado em pausa, Game Over, créditos e Como jogar. */
+.card {
+    position: relative;
+    width: 58cqw;
+    padding: 4cqw 3.5cqw 3.5cqw;
+    background: var(--navy);
+    border-radius: 2.6cqw;
+    box-shadow: 0 1.2cqw 0 var(--cyan);
+    color: var(--white);
+    text-align: left;
+}
+
+/* Versão larga do cartão. */
+.card-wide {
+    width: 82cqw;
+}
+
+/* Etiqueta ciano que fica sobre a borda superior do cartão. */
+.card-tab {
+    position: absolute;
+    top: -2.6cqw;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.8cqw 2.6cqw;
+    background: var(--cyan);
+    color: var(--navy);
+    border-radius: 2cqw;
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 2.1cqw;
+    white-space: nowrap;
+}
+
+/* Texto padrão dos cartões. */
+.card p {
+    font-size: 2cqw;
+    line-height: 1.5;
+}
+
+/* Subtítulo padrão dos cartões, em dourado. */
+.card h2 {
+    margin: 0 0 0.6cqw;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 2.6cqw;
+    color: var(--gold);
+}
+
+/* Seletor composto (.card .screen-title) para vencer a regra ".card h2". */
+.card .screen-title {
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 5.2cqw;
+    color: var(--gold);
+    text-shadow: 0 0.3cqw 0.6cqw rgba(0, 0, 0, 0.4);
+}
+
+/* Botão centralizado no fim do cartão (ex.: Voltar). */
+.card-button {
+    display: block;
+    margin: 3cqw auto 0;
+    min-width: 20cqw;
+}
+
+/* Linha com os botões de ação do cartão (ex.: Jogar novamente e Menu). */
+.card-actions {
+    display: flex;
+    justify-content: center;
+    gap: 2.4cqw;
+    margin-top: 3cqw;
+}
+
+/* Como jogar: cartão largo, com três colunas e texto menor para caber na moldura. */
+.howto-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.4cqw;
+}
+
+/* Texto dos blocos do Como jogar e dos Créditos. */
+.howto-block p,
+.howto-block ul {
+    font-size: 1.6cqw;
+    line-height: 1.45;
+}
+
+.howto-block ul {
+    margin: 0 0 1.2cqw;
+    padding-left: 1.6cqw;
+}
+
+/* Lista de controles sem as bolinhas padrão. */
+.controls-list {
+    list-style: none;
+    padding: 0;
+}
+
+/* Cada controle: a tecla e a descrição na mesma linha. */
+.controls-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.6cqw;
+    margin-bottom: 0.7cqw;
+    font-size: 1.6cqw;
+}
+
+/* Títulos dos blocos. */
+.howto-block h2 {
+    font-size: 2.1cqw;
+    margin-top: 1cqw;
+}
+
+/* O primeiro título do bloco não precisa de espaço em cima. */
+.howto-block h2:first-child {
+    margin-top: 0;
+}
+
+/* Visual de tecla do teclado (as setas). */
+kbd {
+    display: inline-block;
+    min-width: 2.6cqw;
+    padding: 0.2cqw 0.6cqw;
+    border: 0.2cqw solid var(--cyan);
+    border-radius: 0.5cqw;
+    text-align: center;
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 1.7cqw;
+}
+
+/*  Pausa  */
+.pause-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.6cqw;
+    margin-top: 3cqw;
+}
+
+/* Botões redondos: sempre quadrados (largura = altura), para ficarem perfeitamente circulares */
+.round-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 6.4cqw;
+    height: 6.4cqw;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #d9d9d9;
+    cursor: pointer;
+}
+
+/* Escurece ao passar o mouse. */
+.round-btn:hover {
+    background: #c4c4c4;
+}
+
+/* O botão do meio (continuar) é maior que os outros dois. */
+.round-btn-big {
+    width: 8.6cqw;
+    height: 8.6cqw;
+}
+
+/* Cartão da pausa mais compacto, com o título no padrão das outras telas */
+#screen-pause .card {
+    width: 44cqw;
+    padding: 4.4cqw 3cqw 3.4cqw;
+}
+
+#screen-pause .card .screen-title {
+    font-size: 4cqw;
+}
+
+/*  Game Over e vitória */
+/* Linha com os três números finais (km, resgates e velocidade). */
+.final-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 2.5cqw;
+}
+
+/* Cada número final: ícone em cima e valor embaixo. */
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8cqw;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 3cqw;
+}
+
+/* Ícone de cada estatística. */
+.stat img {
+    height: 6cqw;
+    width: auto;
+}
+
+/* Legenda pequena (ex.: "km/h máx."). */
+.stat small {
+    font-size: 1.6cqw;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* Linha com os três ícones de veículo na tela de Game Over. */
+.vehicle-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 4cqw;
+}
+
+.vehicle-row img {
+    height: 9cqw;
+    width: auto;
+    opacity: 0.25;            /* embarcações não alcançadas ficam apagadas */
+}
+
+/* Embarcações alcançadas acendem uma depois da outra */
+.vehicle-row img.reached {
+    animation: acender 0.6s ease-out both;
+}
+
+.vehicle-row img.reached:nth-child(2) { animation-delay: 0.3s; }
+.vehicle-row img.reached:nth-child(3) { animation-delay: 0.6s; }
+
+/* Animação de "acender": o ícone cresce um pouco e fica totalmente visível. */
+@keyframes acender {
+    0%   { opacity: 0.25; transform: scale(0.9); }
+    60%  { opacity: 1;    transform: scale(1.06); }
+    100% { opacity: 1;    transform: scale(1); }
+}
+
+/* Acessibilidade: quem prefere menos movimento não vê a animação (ícone aparece direto). */
+@media (prefers-reduced-motion: reduce) {
+    .vehicle-row img.reached { animation: none; opacity: 1; }
+}
+
+/* Frase de apoio nas telas finais (motivo da derrota, "Veículo final"). */
+.final-caption {
+    margin: 2cqw 0 0;
+    text-align: center;
+    font-size: 2.1cqw;
+    color: var(--sand);
+}
+
+/* Tela "Carregando..." por cima de tudo até as imagens chegarem. */
+.loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-title);
+    font-size: 3cqw;
+    z-index: 20;
+}
+
+/*  Créditos  */
+/* Duas colunas (integrantes e tecnologias), centralizadas na tela. */
+.credits-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: center;
+    text-align: center;
+}
+
+.credits-grid .howto-block ul {
+    list-style: none;
+    padding: 0;
+}
+
+/* Créditos ocupam quase toda a moldura, com texto em tamanho que cabe na altura. */
+.credits-card {
+    width: 88cqw;
+    padding: 5.4cqw 4cqw 4.2cqw;
+}
+
+.credits-grid {
+    gap: 4cqw;
+    margin-bottom: 3.4cqw;
+}
+
+/* Títulos das colunas dos créditos. */
+.credits-grid h2 {
+    font-size: 3.2cqw;
+    margin-bottom: 1.8cqw;
+}
+
+/* Nomes e tecnologias; "nowrap" impede que um nome quebre em duas linhas. */
+.credits-grid li {
+    font-size: 2.4cqw;
+    line-height: 1.75;
+    white-space: nowrap;
+}
+
+/* Relógio do HUD (desenhado em SVG, cor dourada como os outros ícones). */
+.hud-icon {
+    width: 2.4cqw;
+    height: 2.4cqw;
+    flex-shrink: 0;
+}
+
+/* Ícones dos botões da pausa, em azul-marinho sobre o botão cinza. */
+.round-btn svg {
+    width: 46%;
+    height: 46%;
+    color: var(--navy);
+    stroke-width: 2.2;
+    overflow: visible;
+}
+
+/*  Como jogar: ocupa toda a moldura, sem espaços  */
+#screen-howto {
+    padding: 0;
+    justify-content: stretch;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+/* Cartão do Como jogar: ocupa a moldura inteira, sem cantos arredondados. */
+.howto-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 6.4cqw 3.4cqw 5.6cqw;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* A etiqueta fica um pouco mais perto do topo. */
+.howto-card .card-tab {
+    top: 1.6cqw;
+}
+
+/* Grade do Como jogar: 3 colunas e 2 linhas. A coluna da esquerda (controles) ocupa as duas linhas. */
+.howto-mock {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.25fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2.6cqw 3.6cqw;
+    padding-bottom: 7cqw;
+}
+
+/* O bloco de controles se estende pelas duas linhas da grade. */
+.howto-mock .howto-controls {
+    grid-row: 1 / span 2;
+}
+
+/* Título de cada bloco, com o ícone SVG ao lado. */
+.howto-mock h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.8cqw;
+    margin: 0 0 1.2cqw;
+    font-size: 2.5cqw;
+}
+
+/* Ícones SVG dourados, só com contorno. */
+.howto-mock h2 svg {
+    width: 2.5cqw;
+    height: 2.5cqw;
+    flex-shrink: 0;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Texto dos blocos. */
+.howto-mock p,
+.howto-mock li {
+    font-size: 1.8cqw;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.howto-mock .controls-list li {
+    font-size: 1.8cqw;
+}
+
+/* Listas sem bolinhas. */
+.howto-mock ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Espaço entre um item da lista e o seguinte. */
+.howto-mock li + li {
+    margin-top: 1.2cqw;
+}
+
+/* Teclas em caixa azul, como na tela enviada */
+.key {
+    display: inline-grid;
+    place-items: center;
+    min-width: 3cqw;
+    height: 3cqw;
+    padding: 0 0.4cqw;
+    border: 0.15cqw solid var(--cyan);
+    border-radius: 0.5cqw;
+    background: transparent;
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 1.6cqw;
+    font-weight: 600;
+    margin-right: 0.8cqw;
+    vertical-align: middle;
+}
+
+/* Desenho em cruz das setas (↑ ← → ↓) */
+.dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 3.2cqw);
+    grid-template-rows: repeat(3, 3.2cqw);
+    gap: 0.6cqw;
+    justify-content: center;
+    margin: 1.6cqw 0 2.4cqw;
+}
+
+.dpad .key {
+    margin: 0;
+    min-width: 0;
+    width: 3.2cqw;
+    height: 3.2cqw;
+}
+
+/* Posição de cada seta na cruz (coluna e linha da grade 3x3). */
+.dpad-up { grid-column: 2; grid-row: 1; }
+.dpad-left { grid-column: 1; grid-row: 2; }
+.dpad-right { grid-column: 3; grid-row: 2; }
+.dpad-down { grid-column: 2; grid-row: 3; }
+
+/* Tabela de evolução: veículo, resgates e tempo máximo. */
+.evo-table {
+    width: 100%;
+    margin-top: 1cqw;
+    border-collapse: collapse;
+    font-size: 1.5cqw;
+    text-align: center;
+}
+
+/* Cabeçalho da tabela, em dourado. */
+.evo-table th {
+    color: var(--gold);
+    font-weight: 600;
+    padding: 0.5cqw 0.4cqw;
+    border-bottom: 0.1cqw solid rgba(255, 255, 255, 0.5);
+}
+
+/* Células da tabela, com uma linha fina entre elas. */
+.evo-table td {
+    padding: 0.5cqw 0.4cqw;
+    border-bottom: 0.1cqw solid rgba(255, 255, 255, 0.2);
+}
+
+/* Botão Voltar fixo no rodapé, centralizado (o espaço para ele está reservado em .howto-mock) */
+.howto-card .card-button {
+    position: absolute;
+    left: 50%;
+    bottom: 2.4cqw;
+    transform: translateX(-50%);
+    margin: 0;
+    min-width: 14cqw;
+}
+
+/*  Vitória: cena da praia enviada pelo time */
+/* A tela de vitória não usa o fundo padrão: a imagem da praia faz esse papel. */
+.screen.screen-victory {
+    background: none;
+    padding: 0;
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+/* Imagem da praia ocupando a tela inteira, recortada sem distorcer. */
+.victory-cena {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Esconde o elemento da vista, mas leitores de tela ainda o leem (acessibilidade). */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* Ícones (mesmos da HUD) e valores lado a lado, perto dos guarda-sóis, sem encostar neles.
+   Cada grupo começa um pouco à esquerda do centro da sua coluna, para o ícone ficar centralizado. */
+.victory-stat {
+    position: absolute;
+    top: 42%;
+    display: flex;
+    align-items: center;
+    gap: 1.2cqw;
+    color: var(--white);
+    font-family: var(--font-body);
+    text-align: left;
+    text-shadow: 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.5);
+}
+
+.victory-stat img {
+    flex: none;
+    height: 5.4cqw;
+    width: auto;
+    filter: drop-shadow(0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.5));
+}
+
+/* Valor em cima e legenda embaixo. */
+.victory-stat div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2cqw;
+}
+
+/* Número em destaque. */
+.victory-stat span {
+    font-size: 2.6cqw;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+/* Legenda pequena (ex.: "pessoas resgatadas"). */
+.victory-stat small {
+    font-size: 1.3cqw;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Posição horizontal de cada estatística, alinhada com os guarda-sóis da imagem. */
+.stat-km { left: calc(25% - 2.6cqw); }
+.stat-rescued { left: calc(50% - 3cqw); }
+.stat-speed { left: calc(74.5% - 3.4cqw); }
+
+/* Botões menores, no canto inferior direito, longe das pessoas da cena */
+.victory-actions {
+    position: absolute;
+    right: 2.6cqw;
+    bottom: 2.4cqw;
+    display: flex;
+    gap: 1cqw;
+}
+
+/* Botões de ação da vitória, em tamanho reduzido. */
+.victory-actions .btn {
+    min-width: 0;
+    padding: 0.9cqw 2cqw;
+    font-size: 1.5cqw;
+    box-shadow: 0 0.3cqw 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Game Over mais compacto  */
+#screen-gameover .card {
+    width: 60cqw;
+    padding: 3cqw 3cqw 2.6cqw;
+}
+
+#screen-gameover .card .screen-title {
+    font-size: 3.8cqw;
+}
+
+#screen-gameover .final-caption {
+    font-size: 1.6cqw;
+    margin-top: 1cqw;
+}
+
+#screen-gameover .final-stats {
+    margin-top: 1.4cqw;
+}
+
+#screen-gameover .stat img {
+    height: 4.2cqw;
+}
+
+#screen-gameover .stat span {
+    font-size: 2.4cqw;
+}
+
+#screen-gameover .stat small {
+    font-size: 1.3cqw;
+}
+
+#screen-gameover .vehicle-row {
+    margin-top: 1.6cqw;
+}
+
+#screen-gameover .vehicle-row img {
+    height: 6.2cqw;
+}
+
+/*  Animação de evolução
+   Ativada pela classe 'evoluindo'.
+   1) um flash dourado cobre a tela por um instante;
+   2) o pop-up de evolução cresce e aparece com um leve "salto". */
+#game-frame.evoluindo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 45%, rgba(255, 240, 180, 0.85), rgba(245, 196, 98, 0.35) 55%, rgba(245, 196, 98, 0) 80%);
+    animation: evo-flash 0.9s ease-out forwards;
+}
+
+#game-frame.evoluindo #popup {
+    animation: evo-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* Flash dourado: aparece rápido e some devagar. */
+@keyframes evo-flash {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Pop-up da evolução: surge pequeno, passa um pouco do tamanho e assenta. */
+@keyframes evo-pop {
+    0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+    60%  { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
+    100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* Acessibilidade: quem prefere menos movimento não vê a animação de evolução. */
+@media (prefers-reduced-motion: reduce) {
+    #game-frame.evoluindo::after,
+    #game-frame.evoluindo #popup {
+        animation: none;
+    }
+}

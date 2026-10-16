@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+    index.html
+    PAPEL NO PROJETO: é a página única do jogo. Ela monta o "palco":
+      - um <canvas>, onde o JavaScript desenha o mar, os barcos e as pessoas;
+      - o HUD (barra superior), o pop-up e todas as telas (menu, como jogar,
+        créditos, pausa, Game Over e vitória), que são só HTML e CSS.
+    A lógica do jogo NÃO está aqui: fica nos arquivos de js/, carregados
+    pelo main.js no final desta página. Os botões usam o atributo
+    data-action, e o main.js liga cada um à ação certa.
+-->
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WaveRun &amp; Rescue</title>
+    <!-- Fontes do Google (Exo 2 nos títulos e Poppins no texto). Sem internet, o navegador usa Segoe UI. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Ícone vazio, só para o navegador não pedir um favicon.ico que não existe. -->
+    <link rel="icon" href="data:,">
+    <!-- Todo o visual (cores, tamanhos, telas) fica neste arquivo CSS. -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Moldura 16:9. Tudo dentro dela é escalado junto, sem distorção. -->
+    <div id="game-frame">
+        <canvas id="game-canvas" width="1280" height="720" aria-label="Área de jogo do WaveRun and Rescue"></canvas>
+
+        <!-- HUD: distância, resgates, velocidade, tempo, ocupação e pausa.
+             Começa escondido (classe "hidden"); a classe HUD.js mostra e atualiza os textos. -->
+        <header id="hud" class="hud hidden">
+            <!-- Distância percorrida -->
+            <div class="hud-item">
+                <img src="assets/ui/icon-km.png" alt="">
+                <span id="hud-km">0,0 km</span>
+            </div>
+            <!-- Pessoas resgatadas -->
+            <div class="hud-item">
+                <img src="assets/ui/icon-resgates.png" alt="">
+                <span id="hud-rescued">0 resgate</span>
+            </div>
+            <!-- Velocidade atual -->
+            <div class="hud-item">
+                <img src="assets/ui/icon-velocidade.png" alt="">
+                <span id="hud-speed">0 km/h</span>
+            </div>
+            <!-- Cronômetro: tempo que resta para lotar a embarcação (ícone de relógio desenhado em SVG) -->
+            <div class="hud-item">
+                <svg class="hud-icon" viewBox="0 0 24 24" fill="none" stroke="#f5c462" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8.5"/><path d="M12 8.5V13l3 2"/><path d="M9.5 2.5h5"/></svg>
+                <span id="hud-timer">2:00</span>
+            </div>
+            <!-- Ocupação: pessoas a bordo / capacidade da embarcação -->
+            <div class="hud-item hud-occupancy">
+                <span class="hud-label">Ocupação</span>
+                <span id="hud-occupancy">1/2</span>
+            </div>
+            <!-- Botão de pausa (dois traços verticais) -->
+            <button id="btn-pause" class="hud-pause" data-action="pause" aria-label="Pausar">
+                <span></span><span></span>
+            </button>
+        </header>
+
+        <!-- Pop-up informativo (mar calmo, resgate, evolução...).
+             Título, texto e ícone são preenchidos pela classe PopupManager. -->
+        <div id="popup" class="popup hidden" role="status" aria-live="polite">
+            <div class="popup-tab">WaveRun &amp; Rescue</div>
+            <div class="popup-card">
+                <img id="popup-icon" alt="" class="popup-icon">
+                <h2 id="popup-title"></h2>
+                <p id="popup-text"></p>
+            </div>
+        </div>
+
+        <!-- Menu inicial: a arte da capa já traz título e botões.
+             Os botões abaixo são áreas transparentes posicionadas sobre a arte, -->
+        <section id="screen-menu" class="screen screen-cover">
+            <button class="hit-area hit-play" data-action="play" aria-label="Jogar"></button>
+            <button class="hit-area hit-howto" data-action="howto" aria-label="Como Jogar"></button>
+            <button class="hit-area hit-credits" data-action="credits" aria-label="Créditos"></button>
+        </section>
+
+        <!-- Como jogar (layout da tela enviada pelo time).
+             É uma grade com cinco blocos: Controles, Objetivo, Evite, Resgates e Evolução. -->
+        <section id="screen-howto" class="screen screen-scene">
+            <div class="card card-wide howto-card">
+                <div class="card-tab">WaveRun &amp; Rescue</div>
+                <div class="howto-mock">
+                    <!-- Bloco 1: controles, com o desenho das setas e a lista de ações -->
+                    <div class="howto-block howto-controls">
+                        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 8.5h9a4 4 0 0 1 3.9 4.8l-.5 2.2a2.2 2.2 0 0 1-3.8 1l-1.6-1.9h-5.0l-1.6 1.9a2.2 2.2 0 0 1-3.8-1l-.5-2.2A4 4 0 0 1 7.5 8.5z"/><path d="M8 11.5v2.5M6.8 12.75h2.4"/></svg>Controles</h2>
+                        <p>Utilize as seguintes teclas:</p>
+                        <div class="dpad" aria-hidden="true">
+                            <kbd class="key dpad-up">↑</kbd>
+                            <kbd class="key dpad-left">←</kbd>
+                            <kbd class="key dpad-right">→</kbd>
+                            <kbd class="key dpad-down">↓</kbd>
+                        </div>
+                        <ul class="controls-list">
+                            <li><kbd class="key">↑</kbd> Ir para a esquerda</li>
+                            <li><kbd class="key">↓</kbd> Ir para a direita</li>
+                            <li><kbd class="key">→</kbd> Acelerar</li>
+                            <li><kbd class="key">←</kbd> Dar ré</li>
+                        </ul>
+                    </div>
+                    <!-- Bloco 2: objetivo do jogo -->
+                    <div class="howto-block">
+                        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5l1.3 2.7 2.9.4-2.1 2 .5 2.9-2.6-1.4-2.6 1.4.5-2.9-2.1-2 2.9-.4z"/></svg>Objetivo</h2>
+                        <p>Desvie dos obstáculos e salve o maior número de pessoas que conseguir.</p>
+                    </div>
+                    <!-- Bloco 3: o que evitar -->
+                    <div class="howto-block">
+                        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.8 8.8l6.4 6.4M15.2 8.8l-6.4 6.4"/></svg>Evite</h2>
+                        <ul>
+                            <li>Colidir com os obstáculos</li>
+                            <li>Esquecer de fazer resgates</li>
+                            <li>Esquecer de mudar de veículo</li>
+                        </ul>
+                    </div>
+                    <!-- Bloco 4: como funcionam os resgates -->
+                    <div class="howto-block">
+                        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5l-6.6-6.6a4 4 0 0 1 6.6-5.4 4 4 0 0 1 6.6 5.4z"/><path d="M19.5 3.5v5M17 6h5"/></svg>Resgates</h2>
+                        <p>Busque as pessoas que estão em perigo! Aproxime-se delas para concluir os resgates.</p>
+                    </div>
+                    <!-- Bloco 5: evolução, com a tabela de capacidade e tempo de cada veículo
+                         (valores iguais aos das classes JetSki, Lancha e Navio) -->
+                    <div class="howto-block">
+                        <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4.5l1.6 4.4 4.4 1.6-4.4 1.6L10 16.5l-1.6-4.4L4 10.5l4.4-1.6z"/><path d="M18 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>Evolução</h2>
+                        <p>Cada veículo suporta uma quantidade de passageiros e tempo específico para o resgate.</p>
+                        <table class="evo-table">
+                            <thead><tr><th>Veículo</th><th>Resgates</th><th>Tempo Máximo</th></tr></thead>
+                            <tbody>
+                                <tr><td>Jet ski</td><td>3</td><td>1 minuto</td></tr>
+                                <tr><td>Lancha</td><td>14</td><td>3 minutos</td></tr>
+                                <tr><td>Navio</td><td>40</td><td>6 minutos</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <button class="btn btn-secondary card-button" data-action="menu">Voltar</button>
+            </div>
+        </section>
+
+        <!-- Créditos: integrantes e linguagens usadas -->
+        <section id="screen-credits" class="screen screen-scene">
+            <div class="card card-wide credits-card">
+                <div class="card-tab">Créditos</div>
+                <div class="howto-grid credits-grid">
+                    <div class="howto-block">
+                        <h2>Integrantes</h2>
+                        <ul>
+                            <li>Anna Paula Alves Silva</li>
+                            <li>Dilly Martins da Silva</li>
+                            <li>Laura Rayssa Souza Araújo</li>
+                            <li>Rafaela Carvalho Barcos Mello</li>
+                        </ul>
+                    </div>
+                    <div class="howto-block">
+                        <h2>Tecnologias</h2>
+                        <ul>
+                            <li>HTML5</li>
+                            <li>CSS3</li>
+                            <li>JavaScript (ES6)</li>
+                            <li>Canvas (API 2D)</li>
+                        </ul>
+                    </div>
+                </div>
+                <button class="btn btn-secondary card-button" data-action="menu">Voltar</button>
+            </div>
+        </section>
+
+        <!-- Pausa (tela PAUSE da V1): reiniciar, continuar e voltar ao menu.
+             Os ícones dos botões são desenhos SVG, por isso não dependem de imagens. -->
+        <section id="screen-pause" class="screen screen-overlay">
+            <div class="card">
+                <div class="card-tab">WaveRun &amp; Rescue</div>
+                <h2 class="screen-title">PAUSE</h2>
+                <div class="pause-buttons">
+                    <button class="round-btn" data-action="restart" aria-label="Reiniciar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12a6.5 6.5 0 1 0 2-4.7"/><path d="M5.5 4.5v3.8h3.8"/></svg></button>
+                    <button class="round-btn round-btn-big" data-action="resume" aria-label="Continuar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
+                    <button class="round-btn" data-action="menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Game Over (tela Game Over da V1). Os textos e números são preenchidos
+             pelo ScreenManager.showGameOver(), com os dados da partida. -->
+        <section id="screen-gameover" class="screen screen-overlay">
+            <div class="card card-wide">
+                <h2 class="screen-title">Game Over</h2>
+                <!-- Motivo da derrota (bateu em obstáculo ou o tempo acabou) -->
+                <p id="go-reason" class="final-caption"></p>
+                <!-- Resumo: distância, resgates e velocidade máxima -->
+                <div class="final-stats">
+                    <div class="stat"><img src="assets/ui/icon-km.png" alt=""><span id="go-km">0,0 km</span></div>
+                    <div class="stat"><img src="assets/ui/icon-resgates.png" alt=""><span id="go-rescued">0</span></div>
+                    <div class="stat"><img src="assets/ui/icon-velocidade.png" alt=""><span id="go-speed">0</span><small>km/h máx.</small></div>
+                </div>
+                <!-- Os três veículos, na ordem das fases. Os que o jogador alcançou ficam
+                     acesos (classe "reached"); os outros ficam apagados. -->
+                <div class="vehicle-row">
+                    <img id="go-icon-jetski" src="assets/ui/icon-jetski.png" alt="Jet ski">
+                    <img id="go-icon-lancha" src="assets/ui/icon-lancha.png" alt="Lancha">
+                    <img id="go-icon-navio" src="assets/ui/icon-navio.png" alt="Navio">
+                </div>
+                <p id="go-vehicle" class="final-caption">Veículo final: Jet ski</p>
+                <div class="card-actions">
+                    <button class="btn btn-primary" data-action="restart">Jogar novamente</button>
+                    <button class="btn btn-secondary" data-action="menu">Menu</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vitória: cena da praia com o resumo da missão (layout enviado pelo time).
+             A imagem já traz o título e o cenário; o HTML só coloca os números por cima. -->
+        <section id="screen-victory" class="screen screen-victory">
+            <img class="victory-cena" src="assets/ui/victory-cena.png" alt="">
+            <!-- Título só para leitores de tela (classe "sr-only"): fica invisível na tela. -->
+            <h2 class="sr-only">Missão concluída!</h2>
+
+            <div class="victory-stats">
+                <div class="victory-stat stat-km">
+                    <img src="assets/ui/icon-km.png" alt="">
+                    <div><span id="vic-km">0,0 km</span><small>percorridos</small></div>
+                </div>
+                <div class="victory-stat stat-rescued">
+                    <img src="assets/ui/icon-resgates.png" alt="">
+                    <div><span id="vic-rescued">0</span><small>pessoas resgatadas</small></div>
+                </div>
+                <div class="victory-stat stat-speed">
+                    <img src="assets/ui/icon-velocidade.png" alt="">
+                    <div><span id="vic-speed">0 km/h</span><small>velocidade máx.</small></div>
+                </div>
+            </div>
+
+            <div class="victory-actions">
+                <button class="btn btn-primary" data-action="restart">Jogar novamente</button>
+                <button class="btn btn-secondary" data-action="menu">Menu</button>
+            </div>
+        </section>
+
+        <!-- Mensagem exibida enquanto as imagens carregam; o main.js a esconde quando tudo estiver pronto. -->
+        <div id="loading" class="loading">Carregando...</div>
+    </div>
+
+    <!-- Ponto de entrada do JavaScript. "type=module" permite usar import/export entre os arquivos. -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
